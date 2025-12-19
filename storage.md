@@ -1,81 +1,98 @@
 # File Storage
 
-### Files, Pages, Records
+## Key Terminology
 
-Record: a row
+| Term | Definition |
+|------|------------|
+| **Record** | A single row in a table |
+| **Relation** | A table (collection of records with the same schema) |
+| **Page** | The basic unit of data transfer between disk and memory (typically 4KB-8KB) |
 
-Relation: a table
+![Files, Records, and Pages](assets/files_records_pages.jpg)
 
-Page: the basic unit of data for disk
+---
 
-![image](/Users/yuanliheng/Desktop/Database%20Notes/assets/files_records_pages.jpg)
+## File Types
 
-
-
-# File Types
-
-A "file type" in a database system refers to the specific method used to organize **pages** and **records** on a disk.
+A **file type** refers to the method used to organize pages and records on disk. The choice of file type affects the performance of insert, delete, and search operations.
 
 ### Heap File
 
-A **heap file is a file type with no particular ordering of pages or of the records on pages**.
+A **heap file** has no particular ordering of pages or records within pages. Records are inserted wherever there is free space.
 
+#### Linked List Implementation
 
+In the linked list implementation, each data page contains:
+- **Records** (the actual data)
+- **Free space tracker** (how much space remains)
+- **Pointers** (byte offsets to the next and previous pages)
 
-## Linked List Implementation
+A **header page** acts as the entry point and maintains two separate linked lists:
+1. **Free pages** — pages with available space for new records
+2. **Full pages** — pages that are completely filled
 
-In the linked list implementation, each data page contains **records**, a **free space tracker**, and **pointers** (byte offsets) to the next and previous page. There is one header page that acts as the start of the file and separates the data pages into full pages and free pages. When space is needed, empty pages are allocated and appended to the free pages portion of the list. When free data pages become full, they are moved from the free space portion to the front of the full pages portion of the linked list.
+When a free page becomes full, it is moved to the front of the full pages list.
 
-![image](/Users/yuanliheng/Desktop/Database%20Notes/assets/LinkedList.png)
+![Linked List Implementation](assets/LinkedList.png)
 
+#### Page Directory Implementation
 
+Instead of linking all data pages together, the page directory uses a **linked list of header pages only**. Each header page entry contains:
+- A **pointer** to a data page
+- The **amount of free space** remaining in that data page
 
-## Page Directory Implementation
+This approach eliminates the need for data pages to store pointers to neighboring pages, and allows faster location of pages with available space.
 
-The Page Directory implementation differs from the Linked List implementation by only using a **linked list for header pages**. Each header page contains a pointer (byte offset) to the next header page, and its entries contain both a **pointer to a data page** and **the amount of free space left within that data page**. Since our header pages’ entries store pointers to each data page, the data pages themselves no longer need to store pointers to neighboring pages.
+![Page Directory Implementation](assets/PageDirectory.png)
 
-![image](/Users/yuanliheng/Desktop/Database%20Notes/assets/PageDirectory.png)
+### Sorted File
 
+A **sorted file** maintains pages in order, with records within each page sorted by one or more keys. Sorted files are typically implemented using page directories.
 
+### Heap Files vs Sorted Files
 
-### Sorted Files
+| Operation | Heap File | Sorted File |
+|-----------|-----------|-------------|
+| **Insert** | Fast — place anywhere with space | Slow — must maintain sort order |
+| **Search (equality)** | Slow — requires full scan | Fast — can use binary search |
+| **Search (range)** | Slow — requires full scan | Fast — records are contiguous |
 
-A **sorted file is a file type where pages are ordered and records within each page are sorted by key(s)**. These files are implemented using Page Directories and enforce an ordering upon data pages based on how records are sorted.
+---
 
+## Record Types
 
+Records are classified by whether their size is fixed or variable.
 
-Heap Files vs Sorted Files
+### Fixed Length Records (FLR)
 
-heap files: faster insertions, but searching requires full scan
+FLRs contain only fixed-size fields (e.g., `INTEGER`, `BOOLEAN`, `DATE`, `CHAR(n)`). Every record of the same schema occupies the same number of bytes.
 
-Sorted Files: faster search, slower insertion
+### Variable Length Records (VLR)
 
+VLRs contain at least one variable-size field (e.g., `VARCHAR`, `TEXT`, `BLOB`). Records of the same schema can have different byte lengths depending on the actual data stored.
 
+---
 
-# Record Types
+## Page Formats
 
-**Fixed Length Records** (FLR) and **Variable Length Records** (VLR). 
+The internal structure of a page depends on whether it stores fixed or variable length records.
 
-FLRs only contain fixed length fields (integer, boolean, date, etc.). 
+### Pages with Fixed Length Records
 
-Meanwhile, VLRs contain both fixed length and variable length fields (eg. varchar), resulting in each VLR of the same schema having a potentially different number of bytes.
+Pages containing FLRs use a **page header** that stores:
+- The **number of records** currently on the page
 
+Since all records are the same size, the location of the *n*th record can be calculated directly: `offset = header_size + (n × record_size)`.
 
+![Fixed Length Record Page](assets/FLRPage.png)
 
-# Page Formats
+### Pages with Variable Length Records
 
-Pages with Fixed Length Records
+Pages containing VLRs use a **page footer** with a **slot directory** that tracks:
+- **Slot count** — number of record slots
+- **Free space pointer** — offset to the start of free space
+- **Slot entries** — each entry contains the offset and length of a record
 
-Pages containing FLRs always use page headers to store the number of records currently on the page.  
+The footer grows upward from the bottom of the page, while records are inserted from the top downward. This allows both to grow toward the middle without predetermining their sizes.
 
-![image](/Users/yuanliheng/Desktop/Database%20Notes/assets/FLRPage.png)
-
-
-
-## Pages with Variable Length Records
-
-Each page uses a **page footer** that maintains a **slot directory** tracking **slot count**, **a free space pointer**, and **entries**. The footer starts from the bottom of the page rather than the top so that the slot directory has room to grow when records are inserted.
-
-![image](/Users/yuanliheng/Desktop/Database%20Notes/assets/VLRPage.png)
-
-
+![Variable Length Record Page](assets/VLRPage.png)
