@@ -96,3 +96,107 @@ Pages containing VLRs use a **page footer** with a **slot directory** that track
 The footer grows upward from the bottom of the page, while records are inserted from the top downward. This allows both to grow toward the middle without predetermining their sizes.
 
 ![Variable Length Record Page](assets/VLRPage.png)
+
+---
+
+## Buffer Management
+
+The **Buffer Manager** is the software component responsible for moving data between the physical disk (storage) and the main memory (RAM).
+
+### Buffer Pool
+
+A **buffer pool** acts as an intermediary layer of memory (RAM) between the database engine and the physical storage (Disk).
+
+When a user or application requests a specific piece of data (a "page"), the database looks to see if the required page is already in the RAM buffer. If the page is found, it is read directly from memory. If the page is not in memory, the DBMS must fetch it from the disk, load it into the buffer pool, and then return it to the user. If the buffer pool is full, the DBMS must "evict" (remove) an old page to make room for the new one.
+
+- Note: When you try to understand buffer pool, just think about how RAM works.
+
+Memory is converted into a buffer pool by partitioning the space into frames that pages can be placed in. A buffer frame can hold the same amount of data as a page can (so a page fits perfectly into a frame). To efficiently track frames, the buffer manager allocates additional space in memory for a metadata table.
+
+![MetadataTable](assets/MetadataTable.png)
+
+The table tracks 4 pieces of information:
+
+1. Frame ID that is uniquely associated with a memory address
+
+2. Page ID for determining which page a frame currently contains
+
+3. Dirty Bit for verifying whether or not a page has been modified
+
+4. Pin Count for tracking the number of requestors currently using a page
+
+### Handling Page Requests
+
+**On page request:**
+
+If a user requested a page, buffer pool checks the following:
+
+```
+Page in memory?
+├─ Yes → Increment pin count, return address
+└─ No → Empty frame available?
+         ├─ Yes → Load page into frame, set pin count = 1, return address
+         └─ No → Evict a page using replacement policy, then load
+```
+
+**On eviction:** If dirty bit = 1, write page to disk first (then reset dirty bit to 0).
+
+**On request completion:** Requestor must decrement the pin count.
+
+### LRU Replacement and Clock Policy
+
+**LRU Policy:** When new pages need to be read into a full buffer pool, the least recently used page which has pin count = 0 and the lowest value in the Last Used column is evicted.
+
+![LRUTable](assets/LRUTable.png)
+
+**LRU Policy:**
+
+The Clock policy algorithm treats the metadata table as a circular list of frames. It sets the clock hand to the first unpinned frame upon start and **sets the ref bit on each page’s corresponding row to 1 when it is initially read into a frame**.
+
+When the Clock hand reaches a page frame:
+
+```
+                    [Clock hand reaches frame]
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │ pin_count > 0 ? │
+                    └─────────────────┘
+                       │           │
+                      YES          NO
+                       │           │
+                       ▼           ▼
+              ┌──────────────┐  ┌─────────────┐
+              │ Skip frame,  │  │ ref_bit = 1?│
+              │ move to next │  └─────────────┘
+              └──────────────┘     │        │
+                                  YES       NO
+                                   │        │
+                                   ▼        ▼
+                          ┌────────────┐  ┌─────────────┐
+                          │ Clear bit  │  │ Evict this  │
+                          │ (set to 0),│  │    page     │
+                          │ move next  │  └─────────────┘
+                          └────────────┘
+                          (second chance)
+```
+
+![ClockTable](assets/ClockTable.png)
+
+**LRU Policy Downside:**
+
+LRU performs well overall but performance suffers when a set of pages S, where |S| > buffer pool size, are accessed multiple times repeatedly.
+
+Example:
+
+Sequential scan is a simple loop that iterates through every block on disk to find matches for a query.
+
+![LRUSequentialScan](assets/LRUSequentialScan.png)
+
+### MRU Replacement
+
+Instead of evicting the least recently used unpinned page, evict the most recently used unpinned page measured by when the page’s pin count was last decremented.
+
+![MRUSequentialScan](assets/MRUSequentialScan.png)
+
+MRU far outperforms LRU in terms of page hit rate whenever a sequential flooding access pattern occurs.
