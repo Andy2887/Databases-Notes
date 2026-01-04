@@ -10,8 +10,6 @@
 
 ![Files, Records, and Pages](assets/files_records_pages.jpg)
 
----
-
 ## File Types
 
 A **file type** refers to the method used to organize pages and records on disk. The choice of file type affects the performance of insert, delete, and search operations.
@@ -57,8 +55,6 @@ A **sorted file** maintains pages in order, with records within each page sorted
 | **Search (equality)** | Slow — requires full scan | Fast — can use binary search |
 | **Search (range)** | Slow — requires full scan | Fast — records are contiguous |
 
----
-
 ## Record Types
 
 Records are classified by whether their size is fixed or variable.
@@ -70,8 +66,6 @@ FLRs contain only fixed-size fields (e.g., `INTEGER`, `BOOLEAN`, `DATE`, `CHAR(n
 ### Variable Length Records (VLR)
 
 VLRs contain at least one variable-size field (e.g., `VARCHAR`, `TEXT`, `BLOB`). Records of the same schema can have different byte lengths depending on the actual data stored.
-
----
 
 ## Page Formats
 
@@ -96,8 +90,6 @@ Pages containing VLRs use a **page footer** with a **slot directory** that track
 The footer grows upward from the bottom of the page, while records are inserted from the top downward. This allows both to grow toward the middle without predetermining their sizes.
 
 ![Variable Length Record Page](assets/VLRPage.png)
-
----
 
 ## Buffer Management
 

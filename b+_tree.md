@@ -1,3 +1,0 @@
-# B+ Tree
-
-Advanced Topic.
