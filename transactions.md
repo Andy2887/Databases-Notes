@@ -151,5 +151,75 @@ Conflict serializability often flags schedules with blind writes as "non-seriali
 
 **Rule of Thumb:** Every conflict serializable schedule is view serializable, but not every view serializable schedule is conflict serializable.
 
+## Lock
 
+### Two Phase Locking
 
+**Two phase locking (2PL)** is a scheme that ensures the database uses conflict serializable schedules. The two rules for 2PL are:
+
+1. Transactions must acquire a **S (shared)** lock before reading, and an **X (exclusive)** lock before writing
+2. Transactions cannot acquire new locks after releasing any lock
+
+![p6](assets/p6.png)
+
+The problem with this is that it does not prevent **cascading aborts**. For example:
+
+1. T1 updates resource X and then releases the lock on X
+2. T2 reads from X
+3. T1 aborts
+4. T2 must also abort because it read an uncommitted value of X
+
+To solve this, we use **Strict Two Phase Locking (Strict 2PL)**. Strict 2PL is the same as 2PL, except all locks get released together when the transaction commits or aborts.
+
+### Deadlock
+
+#### Avoidance
+
+One way we can get around deadlocks is by trying to avoid getting into a deadlock. We assign the transaction's priority by its age: `now - start time`. If T1 wants a lock that T2 holds, we have two options:
+
+- **Wait-Die**: If T1 has higher priority, T1 waits for T2; else T1 aborts
+- **Wound-Wait**: If T1 has higher priority, T2 aborts; else T1 waits
+
+#### Detection
+
+Use a **"waits-for" graph**. This graph will have one node per transaction and an edge from Ti to Tj if all conditions are met:
+
+1. Tj holds a lock on resource X
+2. Ti tries to acquire a lock on resource X, but Tj must release its lock on resource X before Ti can acquire its desired lock
+
+![p10](assets/p10.png)
+
+If a cycle is found, we will "shoot" a transaction in the cycle and abort it to break the cycle.
+
+### Lock Granularity
+
+#### Hierarchy of Granularity
+
+Locking can happen at various levels within the database. Generally, the levels are structured as follows:
+
+1. **Database Level**: The entire database is locked. Useful for maintenance or backups
+2. **Table Level**: An entire table is locked. If User A is updating the "Employees" table, User B cannot even read it
+3. **Page/Block Level**: A physical disk block (containing several rows) is locked
+4. **Row (Tuple) Level**: Only a specific row is locked. This is the most common level for high-performance databases
+
+#### Multiple Granularity Locking (MGL)
+
+To manage these different levels efficiently, databases use **intent locks**. These signal that a transaction intends to lock something further down the hierarchy:
+
+- **Intent Shared (IS)**: "I intend to place a Shared lock on a row inside this table"
+- **Intent Exclusive (IX)**: "I intend to place an Exclusive lock on a row inside this table"
+- **Shared Intent Exclusive (SIX)**: "I intend to place an Exclusive lock on a row inside this table, and none of you could modify anything in the table"
+
+This prevents a conflict where User A tries to lock an entire table while User B is currently editing a single row inside it. Without intent locks, the database would have to check every single row to see if it's safe to lock the table.
+
+#### Multiple Granularity Locking Protocol
+
+The protocol follows these rules:
+
+1. Each transaction starts from the root of the hierarchy
+2. To get S or IS lock on a node, must hold IS or IX on parent node
+3. To get X or IX on a node, must hold IX or SIX on parent node
+4. Must release locks in bottom-up order
+5. 2-phase and lock compatibility matrix rules enforced as well
+
+The protocol is correct in that it is equivalent to directly setting locks at leaf levels of the hierarchy.
