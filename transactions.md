@@ -223,3 +223,125 @@ The protocol follows these rules:
 5. 2-phase and lock compatibility matrix rules enforced as well
 
 The protocol is correct in that it is equivalent to directly setting locks at leaf levels of the hierarchy.
+
+## Distributed Transactions
+
+**Distributed transactions** are needed for executing queries in distributed databases, as a transaction may need to perform reads and writes on data that exist on different nodes.
+
+### Two Phase Commit (2PC)
+
+**Two Phase Commit (2PC)** ensures that in a transaction, either every node succeeds or no one does.
+
+#### Phase 1: Preparation Phase
+
+1. **Coordinator** sends prepare message to participants to tell participants to either prepare for commit or abort
+2. **Participants** generate a prepare or abort record and flush record to disk
+3. **Participants** send yes vote to coordinator if prepare record is flushed or no vote if abort record is flushed
+4. **Coordinator** generates a commit record if it receives unanimous yes votes or an abort record otherwise, and flushes the record to disk
+
+#### Phase 2: Commit/Abort Phase
+
+1. **Coordinator** broadcasts (sends message to every participant) the result of the commit/abort vote based on flushed record
+2. **Participants** generate a commit or abort record based on the received vote message and flush record to disk
+3. **Participants** send an ACK (acknowledgement) message to the coordinator
+4. **Coordinator** generates an end record once all ACKs are received and flushes the record sometime in the future
+
+![2PC Without Presumed Abort](assets/2PCNoPresumedAbort.png)
+
+**Note:** The asterisk `*` in the diagram above means that the node must wait for that log record to flush to disk before sending the next message.
+
+### Distributed Recovery
+
+Suppose a node were to fail at an arbitrary point in the protocol. When this node comes back online, it should still end up making the same decision as all the other nodes in the database. We could recover by looking at our own log and talking to the coordinator node.
+
+#### Recovery Scenarios
+
+**Participant is recovering, and sees no prepare record:**
+
+- This probably means that the participant has not even started 2PC yet – and if it has, it hasn't yet sent out any vote messages (since votes are sent after flushing the log record to disk)
+- Since it has not sent out any vote messages, it aborts the transaction locally
+- No messages need to be sent out (the participant has no knowledge of the coordinator ID)
+
+**Participant is recovering, and sees a prepare record:**
+
+- This situation is trickier. Looking at the diagram above, a lot of things could have happened between logging the prepare record and crashing – for instance, we don't even know if we managed to send out our YES vote!
+- Specifically, we don't know whether or not the coordinator made a commit decision
+- The participant node's recovery process must ask the coordinator whether a commit happened ("Did the coordinator log a commit?"). The coordinator can be determined from the coordinator ID stored in the prepare log record
+- The coordinator will respond with the commit/abort decision, and the participant resumes 2PC from phase 2
+
+**Coordinator is recovering, and sees no commit record:**
+
+- The coordinator crashed at some point before receiving the votes of all participants and logging a commit decision
+- The coordinator will abort the transaction locally. No messages need to be sent out (the coordinator has no knowledge of the participant IDs involved in the transaction since it does not log its own prepare record)
+- If the coordinator receives an inquiry from a participant about the status of the transaction, respond that the transaction aborted
+
+**Coordinator is recovering, and sees a commit record:**
+
+- We'd like to commit, but we don't know if we managed to tell the participants
+- Rerun phase 2 (send out commit messages to participants). The participants can be determined from the participant IDs stored in the commit log record
+
+**Participant is recovering, and sees a commit record:**
+
+- We did all our work for this commit, but the coordinator might still be waiting for our ACK, so send ACK to coordinator
+- The coordinator can be determined from the coordinator ID stored in the commit log record
+
+**Coordinator is recovering, and sees an end record:**
+
+- This means that everybody already finished the transaction and there is no recovery to do
+
+### Presumed Abort Optimization
+
+The **presumed abort optimization** improves 2PC performance by eliminating the need to flush abort records to disk.
+
+![2PC with Presumed Abort](assets/2pc-presumed-abort.png)
+
+**Note:** The asterisk `*` in the diagram above means that the node must wait for that log record to flush to disk before sending the next message. Notice that in the presumed abort optimization, abort records no longer need to be flushed to disk.
+
+#### Recovery with Presumed Abort
+
+The following scenarios show how recovery differs with and without presumed abort:
+
+**Participant is recovering, and sees no phase 1 abort record:**
+
+- **Without presumed abort:** This probably means that the participant has not even started 2PC yet – and if it has, it hasn't yet sent out any vote messages (since votes are sent after flushing the log record to disk)
+- **With presumed abort:** It is possible that the participant decided to abort and sent a "no" vote to the coordinator before the crash
+- **Recovery:** With or without presumed abort, the participant aborts the transaction locally. No messages need to be sent out (the participant has no knowledge of the coordinator ID)
+
+**Participant is recovering, and sees a phase 1 abort record:**
+
+- **Without presumed abort:** Abort the transaction locally and send "no" vote to the coordinator (The coordinator can be determined from the coordinator ID stored in the abort log record)
+- **With presumed abort:** Abort the transaction locally. No messages need to be sent out! (The coordinator will timeout after not hearing from the participant and presume abort)
+
+**Coordinator is recovering, and sees no abort record:**
+
+- **Without presumed abort:** The coordinator crashed at some point before reaching a commit/abort decision
+- **With presumed abort:** It is possible that the coordinator decided to abort and sent out abort messages to the participants before the crash
+- **Recovery:** With or without presumed abort, the coordinator will abort the transaction locally. No messages need to be sent out (the coordinator has no knowledge of the participant IDs involved in the transaction)
+- If the coordinator receives an inquiry from a participant about the status of the transaction, respond that the transaction aborted
+
+**Coordinator is recovering, and sees an abort record:**
+
+- **Without presumed abort:** Rerun phase 2 (sending out abort messages to participants). The participants can be determined from the participant IDs in the abort log record
+- **With presumed abort:** Abort the transaction locally. No messages need to be sent out! (Participants who don't know the decision will ask the coordinator later)
+
+**Participant is recovering, and sees a phase 2 abort record:**
+
+- **Without presumed abort:** Abort the transaction locally, and send back ACK to coordinator (The coordinator can be determined from the coordinator ID stored in the abort log record)
+- **With presumed abort:** Abort the transaction locally. No messages need to be sent out! (ACKs only need to be sent back on commit)
+
+**Note:** The recovery processes for commit records is the same in Two-Phase Commit and Two-Phase Commit with Presumed Abort.
+
+### 2PC Limitations
+
+**Key Points:**
+
+- The 2PC recovery decision is commit if and only if the coordinator has logged a commit record
+- Since 2PC requires unanimous agreement, it will only make progress if all nodes are alive. This is true for the recovery protocol as well – for recovery to finish, all failed nodes must eventually come back alive
+- If the coordinator believes a participant is dead, it can respawn the participant on a new node based on the log of the original participant, and ignore the original participant if it does come back online
+- However, 2PC struggles to handle scenarios where the coordinator is dead. For example, consider a scenario where all participants vote yes in Phase 1, but the coordinator crashes before sending out a commit decision. The participants will keep pinging the dead coordinator for the status of the transaction, and the system is blocked from making progress
+
+
+
+
+
+
