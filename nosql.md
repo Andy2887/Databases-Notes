@@ -1,5 +1,7 @@
 # NoSQL
 
+---
+
 ## History
 
 ### OLTP and OLAP
@@ -34,9 +36,9 @@ Traditional databases like MySQL or PostgreSQL were designed in an era where sto
 
 Relational databases use normalization to eliminate redundancy. Information is split into many tables (e.g., Users, Orders, Products) and linked by keys.
 
-**The Scaling Issue:** When you scale horizontally (sharding), you split your data across 100 different servers. If you need to perform a JOIN between Users and Orders, those two tables might live on different physical machines.
+**The Scaling Issue:** When you scale horizontally (sharding), you split your data across 100 different servers.
 
-**The Result:** The database must coordinate a massive data transfer over the network to merge those rows. Network latency makes this incredibly slow, and the complexity grows exponentially as you add more nodes.
+If you need to perform a JOIN between Users and Orders, those two tables might live on different physical machines. The database must coordinate a massive data transfer over the network to merge those rows. Network latency makes this incredibly slow, and the complexity grows exponentially as you add more nodes.
 
 #### The ACID & Coordination Problem
 
@@ -48,15 +50,11 @@ RDBMS are built on ACID properties (Atomicity, Consistency, Isolation, Durabilit
 
 ### How NoSQL Simplification Solves This
 
-NoSQL scales better because it "cheats" by changing the rules of how data is stored and managed.
-
 #### Denormalization (Self-Contained Data)
 
 Instead of splitting data into 10 tables, NoSQL often stores everything related to a single record in one "document" (like a JSON object).
 
-**Scaling Advantage:** Since a "User" document contains their profile, settings, and recent orders all in one place, the database never needs to perform a cross-server JOIN.
-
-**The Result:** A single server can satisfy the entire request without talking to any other node. This makes it trivial to split data (sharding) across thousands of cheap servers.
+**The Result:** A single server can satisfy the entire request without talking to any other node.
 
 #### Relaxed Consistency (The CAP Theorem)
 
@@ -71,6 +69,8 @@ Most NoSQL databases follow the BASE model (Basically Available, Soft state, Eve
 By removing features like Triggers, Foreign Key Constraints, and Complex Aggregations, the database engine becomes "thinner."
 
 **Scaling Advantage:** The CPU spends less time checking rules and more time moving bytes. Much of the "logic" is pushed to the application layer, allowing the database to focus purely on high-speed retrieval.
+
+---
 
 ## Methods of Scaling Database
 
@@ -88,6 +88,8 @@ Partitioning can be effective for write-heavy workloads, as query write operatio
 **Replication** is motivated not only by the need to scale the database, but also for the database to be resilient to failures and extensive down-time. For each partition, there is a main/primary (formerly called master) copy and duplicates/replicas that are kept in sync.
 
 This is effective for read-heavy workloads, as queries that read the same data can be executed in parallel on different replicas. However, as the number of replicas increases, writes become increasingly expensive, as queries that update data must now write to each replica of the data to keep them in sync.
+
+---
 
 ## NoSQL Data Models
 

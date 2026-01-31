@@ -1,5 +1,7 @@
 # File Storage
 
+---
+
 ## Key Terminology
 
 | Term | Definition |
@@ -9,6 +11,8 @@
 | **Page** | The basic unit of data transfer between disk and memory (typically 4KB-8KB) |
 
 ![Files, Records, and Pages](assets/files_records_pages.jpg)
+
+---
 
 ## File Types
 
@@ -55,6 +59,8 @@ A **sorted file** maintains pages in order, with records within each page sorted
 | **Search (equality)** | Slow — requires full scan | Fast — can use binary search |
 | **Search (range)** | Slow — requires full scan | Fast — records are contiguous |
 
+---
+
 ## Record Types
 
 Records are classified by whether their size is fixed or variable.
@@ -67,29 +73,7 @@ FLRs contain only fixed-size fields (e.g., `INTEGER`, `BOOLEAN`, `DATE`, `CHAR(n
 
 VLRs contain at least one variable-size field (e.g., `VARCHAR`, `TEXT`, `BLOB`). Records of the same schema can have different byte lengths depending on the actual data stored.
 
-## Page Formats
-
-The internal structure of a page depends on whether it stores fixed or variable length records.
-
-### Pages with Fixed Length Records
-
-Pages containing FLRs use a **page header** that stores:
-- The **number of records** currently on the page
-
-Since all records are the same size, the location of the *n*th record can be calculated directly: `offset = header_size + (n × record_size)`.
-
-![Fixed Length Record Page](assets/FLRPage.png)
-
-### Pages with Variable Length Records
-
-Pages containing VLRs use a **page footer** with a **slot directory** that tracks:
-- **Slot count** — number of record slots
-- **Free space pointer** — offset to the start of free space
-- **Slot entries** — each entry contains the offset and length of a record
-
-The footer grows upward from the bottom of the page, while records are inserted from the top downward. This allows both to grow toward the middle without predetermining their sizes.
-
-![Variable Length Record Page](assets/VLRPage.png)
+---
 
 ## Buffer Management
 
@@ -192,3 +176,60 @@ Instead of evicting the least recently used unpinned page, evict the most recent
 ![MRUSequentialScan](assets/MRUSequentialScan.png)
 
 MRU far outperforms LRU in terms of page hit rate whenever a sequential flooding access pattern occurs.
+
+---
+
+## Storage Models
+
+### N-ary Storage Model
+
+The **N-ary Storage Model (NSM)** is a database storage architecture where the DBMS stores nearly all attributes for a single tuple contiguously within a page.
+
+<img src="assets/nary.jpg" style="zoom:50%;" />
+
+### Decomposition Storage Model
+
+The **Decomposition Storage Model (DSM)** is a database storage architecture that stores a single attribute for all tuples contiguously within a block of data.
+
+In other words, DSM is a **column-based storage architecture**.
+
+<img src="assets/dsm.jpg" style="zoom:50%;" />
+
+### PAX Storage Model
+
+**Partition Attributes Across (PAX)** is a hybrid storage model that vertically partitions attributes within a page.
+
+PAX keeps the data on the same logical page but reorganizes the data **inside** that page to be column-oriented.
+
+*Example:*
+
+Imagine a database page storing two users: `{ID: 1, Name: "A", Age: 20}` and `{ID: 2, Name: "B", Age: 30}`.
+
+**PAX (Hybrid) Page Layout:** Data is column-oriented *within* the row-oriented page.
+
+```tex
+| PAGE HEADER |
+| offset_ID   | -> [ ID:1 | ID:2 ]      (Minipage 1)
+| offset_Name | -> [ Name:A | Name:B ]  (Minipage 2)
+| offset_Age  | -> [ Age:20 | Age:30 ]  (Minipage 3)
+```
+
+### HTAP Storage Model
+
+**HTAP (Hybrid Transaction/Analytical Processing)** is a single system that can handle high-throughput transactions (OLTP) and complex analytical queries (OLAP) simultaneously on the same data.
+
+There are two strategies to achieve this:
+
+#### Fractured Mirror
+
+**Mirror A (Primary/NSM):** Incoming transactions are first stored in **Row Store**. This provides faster writes and updates.
+
+**Mirror B (Secondary/DSM):** The data are then copied to a **Column Store**. Analytical queries are routed here to take advantage of scan speeds and cache locality.
+
+#### Delta Store
+
+**Delta Store (NSM):** Incoming transactions are first stored in **Row Store**.
+
+**Historical Data (DSM):** The data are then copied to a **Column Store**.
+
+*Difference between Fractured Mirror and Delta Store: For fractured mirror, data stores in **both mirrors**. In Delta store, data is **either stored in row store or column store**.*

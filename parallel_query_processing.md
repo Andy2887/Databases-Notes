@@ -1,5 +1,7 @@
 # Parallel Query Processing
 
+---
+
 ## Parallel Architectures
 
 ### Shared Memory
@@ -14,23 +16,11 @@
 
 ![sharednothing](assets/sharednothing.png)
 
-## Types of Parallelism
-
-### Inter-query Parallelism
-
-Inter-query Parallelism gives each machine **different queries** to work on so that the system can achieve a high throughput and complete as many queries as possible.
-
-### Intra-query Parallelism
-
-Intra-query parallelism attempts to make one query run as fast as possible by spreading the work over multiple computers.
-
-We can further divide Intra-query parallelism into two classes: **intra-operator** and **inter-operator**.
-
-**Intra-operator** is making one operator run as quickly as possible.
-
-**Inter-operator** parallelism is making a query run as fast as possible by running the operators in parallel.
+---
 
 ## Types of Inter-operator Parallelism
+
+**Definition:** Inter-operator Parallelism is making a query run as fast as possible by running the operators in parallel.
 
 ### Pipeline Parallelism
 
@@ -52,7 +42,9 @@ Different branches of the tree are run in parallel.
 
 In the above example, the left branch and right branch can execute at the same time.
 
-# Partitioning
+---
+
+## Partitioning
 
 Because all of our machines have their own disk we have to decide what data is stored on what machine.
 
