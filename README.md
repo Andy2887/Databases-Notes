@@ -1,4 +1,4 @@
-# Database Notes
+# Databases Notes
 
 ## Overview
 
@@ -14,6 +14,6 @@ A collection of notes covering core database concepts, including storage systems
 
 - [Transactions](transactions.md) - Concurrency issues, ACID properties, concurrency control, two-phase locking, deadlock handling, lock granularity, and distributed transactions with two-phase commit (2PC).
 
-### Special Topics
+### Databases Analysis
 
-- [NoSQL](nosql.md) - History of OLTP/OLAP workloads, why relational databases are hard to scale, and NoSQL data models (key-value stores, wide-column stores, document stores).
+- [Milvus](milvus.md) - An open-source vector database built for GenAI applications.
