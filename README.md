@@ -17,3 +17,7 @@ A collection of notes covering core database concepts, including storage systems
 ### Databases Analysis
 
 - [Milvus](milvus.md) - An open-source vector database built for GenAI applications.
+
+## Acknowledgement
+
+I learned a lot from [Advanced Database Systems at CMU](https://15721.courses.cs.cmu.edu/spring2023/). Special thanks to Professor Pavlo and CMU Database Group for making their learning materials open source.

@@ -1,0 +1,1 @@
+https://docs.databricks.com/aws/en/getting-started/high-level-architecture

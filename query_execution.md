@@ -4,19 +4,17 @@
 
 ## Query Planner
 
-A **query planner** is the component of a Database Management System (DBMS) that determines the most efficient way to execute a SQL statement.
-
-### Processing Models
-
-A DBMS's processing model defines how the system executes a query plan.
+A **query planner** is the component of a DBMS that determines the most efficient way to execute a SQL statement.
 
 Example Query:
 
 <img src="/Users/yuanliheng/Desktop/Database Notes/assets/example_query.jpg" style="zoom:50%;" />
 
----
+### Processing Models
 
-#### Approach #1: Iterator Model
+A DBMS's processing model defines how the system executes a query plan.
+
+**Approach #1: Iterator Model**
 
 Every operator implements a `next()` function. The root operator calls `next()` on its child, which calls `next()` on *its* child, all the way down to the leaf (table scan). **Each `next()` call returns one tuple at a time.**
 
@@ -29,13 +27,13 @@ Every operator implements a `next()` function. The root operator calls `next()` 
 5. Hash join returns **one qualifying tuple** up to projection.
 6. Step 1 and 3-5 is repeated until root's `next()` returns None. (Hash table is only built once)
 
-Pros: It's simple.
+Pros: it's simple.
 
-Cons: That's a *lot* of function call overhead for OLAP queries processing millions of rows.
+Cons: **a lot of function call overhead.**
 
 ---
 
-#### Approach #2: Materialization Model
+**Approach #2: Materialization Model**
 
 Each operator processes its *entire* input and produces its *entire* output before passing it to the parent. **You call `Output()` and get back all the tuples at once.**
 
@@ -47,13 +45,13 @@ Each operator processes its *entire* input and produces its *entire* output befo
 4. The selection operator calls `output()` on S which gets **all of S**, and push **all qualifying tuples** up to hash join.
 5. Hash join push qualifying tuples up to projection.
 
-Pros: Fewer function calls overhead
+Pros: fewer function calls overhead
 
-Cons: Enormous intermediate results in memory
+Cons: **enormous intermediate results in memory**
 
 ---
 
-#### Approach #3: Vectorization Model
+**Approach #3: Vectorization Model**
 
 It works like the iterator model — operators have a `next()` function — but instead of returning one tuple, they return a **batch** of tuples (say, 1024 at a time).
 
@@ -65,21 +63,21 @@ It works like the iterator model — operators have a `next()` function — but 
 
 **Definition:** making a query run as fast as possible by running the **operators** in parallel.
 
-#### Pipeline Parallelism
+**Pipeline Parallelism**
 
 In pipeline parallelism records are passed to the parent operator as soon as they are done. The parent operator can work on a record that its child has already processed while the child operator is working on a different record.
 
-**Example:**
+Example:
 
 ![pipeline](/Users/yuanliheng/Desktop/Database Notes/assets/pipeline.png)
 
 In the above example, the project and filter can run at the same time because as soon as filter finishes a record, project can operate on it while filter picks up a new record to operate on.
 
-#### Bushy Tree Parallelism
+**Bushy Tree Parallelism**
 
 Different branches of the tree are run in parallel.
 
-**Example:**
+Example:
 
 ![bushytree](/Users/yuanliheng/Desktop/Database Notes/assets/bushytree.png)
 
@@ -87,9 +85,9 @@ In the above example, the left branch and right branch can execute at the same t
 
 ### Intra-operator Parallelism
 
-Operators are decomposed into independent instances that perform the same function on different subsets of data.
+Operators are decomposed into independent instances that perform the **same function** on **different subsets of data**.
 
-*Think about multiple threads each processing part of the data.*
+*Analogy: think about multiple threads each processing part of the data.*
 
 Example: In the example below, each core works on 1/3 of the data.
 

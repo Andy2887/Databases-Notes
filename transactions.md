@@ -1,8 +1,12 @@
 # Transactions
 
+---
+
 ## Overview
 
-A **transaction** is a sequence of one or more database operations that are executed as a single logical unit of work. Transactions guarantee ACID properties to ensure data integrity and consistency even when multiple users access the database concurrently.
+A **transaction** is a sequence of one or more database operations that are executed as a single logical unit of work.
+
+---
 
 ## Concurrency Issues
 
@@ -102,6 +106,8 @@ Two schedules are **conflict equivalent** if they order all pairs of conflicting
 
 A schedule is **conflict serializable** if it is conflict equivalent to some serial schedule. Conflict serializability is a sufficient condition for serializability and can be verified without executing the entire schedule.
 
+---
+
 ## Conflict Dependency Graph
 
 A **dependency graph** (also called a precedence graph) is used to determine whether a schedule is conflict serializable.
@@ -131,6 +137,8 @@ The dependency graph contains a cycle, so this schedule is not conflict serializ
 
 ![Cyclic Dependency Graph](assets/p4.png)
 
+---
+
 ## View Serializability
 
 **View serializability** is an alternate way to determine overall serializability. View serializability will identify more serializable schedules than conflict serializability.
@@ -150,6 +158,8 @@ The "secret sauce" of view serializability is how it handles **blind writes** (w
 Conflict serializability often flags schedules with blind writes as "non-serializable" because they create cycles in a precedence graph. However, view serializability recognizes that if a write is "blind" and then immediately overwritten by another "final write," the intermediate conflict doesn't actually change the final outcome of the database.
 
 **Rule of Thumb:** Every conflict serializable schedule is view serializable, but not every view serializable schedule is conflict serializable.
+
+---
 
 ## Lock
 
@@ -224,6 +234,8 @@ The protocol follows these rules:
 
 The protocol is correct in that it is equivalent to directly setting locks at leaf levels of the hierarchy.
 
+---
+
 ## Distributed Transactions
 
 **Distributed transactions** are needed for executing queries in distributed databases, as a transaction may need to perform reads and writes on data that exist on different nodes.
@@ -254,7 +266,7 @@ The protocol is correct in that it is equivalent to directly setting locks at le
 
 Suppose a node were to fail at an arbitrary point in the protocol. When this node comes back online, it should still end up making the same decision as all the other nodes in the database. We could recover by looking at our own log and talking to the coordinator node.
 
-#### Recovery Scenarios
+Here are the recovery scenarios:
 
 **Participant is recovering, and sees no prepare record:**
 

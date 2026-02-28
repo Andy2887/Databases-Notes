@@ -16,13 +16,13 @@
 
 ## File Types
 
-A **file type** refers to the method used to organize pages and records on disk. The choice of file type affects the performance of insert, delete, and search operations.
+A **file type** refers to the method used to organize pages on disk.
 
 ### Heap File
 
-A **heap file** has no particular ordering of pages or records within pages. Records are inserted wherever there is free space.
+A heap file has **no particular ordering of pages or records** within pages. Records are inserted wherever there is free space.
 
-#### Linked List Implementation
+**Linked List Implementation**
 
 In the linked list implementation, each data page contains:
 - **Records** (the actual data)
@@ -37,13 +37,11 @@ When a free page becomes full, it is moved to the front of the full pages list.
 
 ![Linked List Implementation](assets/LinkedList.png)
 
-#### Page Directory Implementation
+**Page Directory Implementation**
 
 Instead of linking all data pages together, the page directory uses a **linked list of header pages only**. Each header page entry contains:
 - A **pointer** to a data page
-- The **amount of free space** remaining in that data page
-
-This approach eliminates the need for data pages to store pointers to neighboring pages, and allows faster location of pages with available space.
+- The **amount of free space** remaining in the data page the pointer points to
 
 ![Page Directory Implementation](assets/PageDirectory.png)
 
@@ -77,21 +75,23 @@ VLRs contain at least one variable-size field (e.g., `VARCHAR`, `TEXT`, `BLOB`).
 
 ## Buffer Management
 
-The **Buffer Manager** is the software component responsible for moving data between the physical disk (storage) and the main memory (RAM).
+The **Buffer Manager** is the software component responsible for moving data between the physical disk and the main memory (RAM).
 
 ### Buffer Pool
 
-A **buffer pool** acts as an intermediary layer of memory (RAM) between the database engine and the physical storage (Disk).
+A **buffer pool** acts as an intermediary layer of memory between the database engine and the physical storage (Disk).
 
-When a user or application requests a specific piece of data (a "page"), the database looks to see if the required page is already in the RAM buffer. If the page is found, it is read directly from memory. If the page is not in memory, the DBMS must fetch it from the disk, load it into the buffer pool, and then return it to the user. If the buffer pool is full, the DBMS must "evict" (remove) an old page to make room for the new one.
+When a user requests a specific piece of data (a "page"), the database looks to see if the required page is already in the RAM buffer. If the page is found, it is read directly from memory. If the page is not in memory, the DBMS must fetch it from the disk, load it into the buffer pool, and then return it to the user. If the buffer pool is full, the DBMS must "evict" (remove) an old page to make room for the new one.
 
 - Note: When you try to understand buffer pool, just think about how RAM works.
 
-Memory is converted into a buffer pool by partitioning the space into frames that pages can be placed in. A buffer frame can hold the same amount of data as a page can (so a page fits perfectly into a frame). To efficiently track frames, the buffer manager allocates additional space in memory for a metadata table.
+Pages are stored in buffer pool as frames. A buffer frame can hold the same amount of data as a page can (so a page fits perfectly into a frame). 
+
+To efficiently track frames, the buffer manager has a metadata table:
 
 ![MetadataTable](assets/MetadataTable.png)
 
-The table tracks 4 pieces of information:
+This table tracks 4 pieces of information:
 
 1. Frame ID that is uniquely associated with a memory address
 
@@ -121,13 +121,15 @@ Page in memory?
 
 ### LRU Replacement and Clock Policy
 
-**LRU Policy:** When new pages need to be read into a full buffer pool, the least recently used page which has pin count = 0 and the lowest value in the Last Used column is evicted.
+**LRU Policy:** When new pages need to be read into a full buffer pool, the least recently used page with pin count = 0 is evicted.
 
 ![LRUTable](assets/LRUTable.png)
 
-**LRU Policy:**
+**Clock Policy:**
 
-The Clock policy algorithm treats the metadata table as a circular list of frames. It sets the clock hand to the first unpinned frame upon start and **sets the ref bit on each page’s corresponding row to 1 when it is initially read into a frame**.
+The clock policy is a simplified version of the LRU policy.
+
+It treats the metadata table as a circular list of frames. It sets the clock hand to the first unpinned frame upon start and **sets the ref bit for each page to 1 when it is initially read into a frame**.
 
 When the Clock hand reaches a page frame:
 
@@ -157,8 +159,6 @@ When the Clock hand reaches a page frame:
                           (second chance)
 ```
 
-![ClockTable](assets/ClockTable.png)
-
 **LRU Policy Downside:**
 
 LRU performs well overall but performance suffers when a set of pages S, where |S| > buffer pool size, are accessed multiple times repeatedly.
@@ -183,7 +183,9 @@ MRU far outperforms LRU in terms of page hit rate whenever a sequential flooding
 
 ### N-ary Storage Model
 
-The **N-ary Storage Model (NSM)** is a database storage architecture where the DBMS stores nearly all attributes for a single tuple contiguously within a page.
+The DBMS stores all attributes for a single tuple contiguously within a page.
+
+In other words, NSM is a **row-based storage architecture**.
 
 <img src="assets/nary.jpg" style="zoom:50%;" />
 
@@ -197,39 +199,42 @@ In other words, DSM is a **column-based storage architecture**.
 
 ### PAX Storage Model
 
-**Partition Attributes Across (PAX)** is a hybrid storage model that vertically partitions attributes within a page.
+Partition Attributes Across (PAX) is a hybrid storage model that **combines both row-oriented and column-oriented storage.**
 
-PAX keeps the data on the same logical page but reorganizes the data **inside** that page to be column-oriented.
+**How It Works:**
+
+- **Horizontal Partitioning (Row Groups):** Data is first split horizontally into large subsets called "row groups".
+- **Vertical Partitioning (Column Chunks):** Within each row group, the data is stored column-by-column.
 
 *Example:*
 
-Imagine a database page storing two users: `{ID: 1, Name: "A", Age: 20}` and `{ID: 2, Name: "B", Age: 30}`.
-
-**PAX (Hybrid) Page Layout:** Data is column-oriented *within* the row-oriented page.
+Imagine a database row group containing two users: `{ID: 1, Name: "A", Age: 20}` and `{ID: 2, Name: "B", Age: 30}`.
 
 ```tex
-| PAGE HEADER |
-| offset_ID   | -> [ ID:1 | ID:2 ]      (Minipage 1)
-| offset_Name | -> [ Name:A | Name:B ]  (Minipage 2)
-| offset_Age  | -> [ Age:20 | Age:30 ]  (Minipage 3)
+| Row HEADER  |
+| offset_ID   | -> [ ID:1 | ID:2 ]      (Column 1)
+| offset_Name | -> [ Name:A | Name:B ]  (Column 2)
+| offset_Age  | -> [ Age:20 | Age:30 ]  (Column 3)
 ```
+
+There are multiple such row groups in the storage.
 
 ### HTAP Storage Model
 
-**HTAP (Hybrid Transaction/Analytical Processing)** is a single system that can handle high-throughput transactions (OLTP) and complex analytical queries (OLAP) simultaneously on the same data.
+**HTAP (Hybrid Transaction/Analytical Processing)** is a single system that can handle OLTP and OLAP simultaneously on the same data.
 
 There are two strategies to achieve this:
 
-#### Fractured Mirror
+1. **Fractured Mirror**
 
-**Mirror A (Primary/NSM):** Incoming transactions are first stored in **Row Store**. This provides faster writes and updates.
+- **Mirror A (Primary/NSM):** Incoming transactions are first stored in **Row Store**. This provides faster writes and updates.
 
-**Mirror B (Secondary/DSM):** The data are then copied to a **Column Store**. Analytical queries are routed here to take advantage of scan speeds and cache locality.
+- **Mirror B (Secondary/DSM):** The data are then copied to a **Column Store**. OLAP queries are routed here to take advantage of scan speeds.
 
-#### Delta Store
+2. **Delta Store**
 
-**Delta Store (NSM):** Incoming transactions are first stored in **Row Store**.
+- **Delta Store (NSM):** Incoming transactions are first stored in **Row Store**.
 
-**Historical Data (DSM):** The data are then copied to a **Column Store**.
+- **Historical Data (DSM):** The data are then copied to a **Column Store**.
 
 *Difference between Fractured Mirror and Delta Store: For fractured mirror, data stores in **both mirrors**. In Delta store, data is **either stored in row store or column store**.*
