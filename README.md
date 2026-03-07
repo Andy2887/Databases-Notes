@@ -8,9 +8,9 @@ A collection of notes covering core database concepts, including storage systems
 
 ### Fundamentals
 
-- [Storage](storage.md) - File types (heap and sorted files), record types, buffer management with LRU/Clock/MRU policies, and storage models (NSM, DSM, PAX, HTAP).
-- [Query Execution](query_execution.md) - Query planner processing models (iterator, materialization, vectorization) and parallel query processing (inter-operator and intra-operator parallelism).
-- [Transactions](transactions.md) - Concurrency issues, ACID properties, concurrency control, two-phase locking, deadlock handling, lock granularity, and distributed transactions with two-phase commit (2PC).
+- [Storage](storage.md) - Record types, buffer management with LRU/Clock/MRU policies, and storage models (NSM, DSM, PAX, HTAP).
+- [Query Execution](query_execution.md) - Query processing models and parallel query processing. 
+- [Transactions](transactions.md) - Concurrency control, two-phase locking, deadlock handling, lock granularity, and distributed transactions with two-phase commit (2PC).
 
 ### Databases Analysis
 
@@ -23,6 +23,7 @@ A collection of notes covering core database concepts, including storage systems
 ### TODO
 
 1. Add query optimizer.
+1. Add databricks to database analysis.
 
 ## Acknowledgement
 

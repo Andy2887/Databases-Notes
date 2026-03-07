@@ -61,7 +61,7 @@ Start with the root and "pull" data up from its children.
 
 *Pros:* Easy to implement "Limit", because parent just keep asking children for tuple if needed.
 
-*Cons:* Control flow of pull-based engine is more complicated, which degrades branch prediction.
+*Cons:* Control flow of pull-based engine is more complicated because it introduces more loops and branches, which degrades branch prediction.
 
 **Approach #2: Bottom-to-Top (Push)**
 
