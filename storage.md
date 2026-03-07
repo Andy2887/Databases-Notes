@@ -2,63 +2,6 @@
 
 ---
 
-## Key Terminology
-
-| Term | Definition |
-|------|------------|
-| **Record** | A single row in a table |
-| **Relation** | A table (collection of records with the same schema) |
-| **Page** | The basic unit of data transfer between disk and memory (typically 4KB-8KB) |
-
-![Files, Records, and Pages](assets/files_records_pages.jpg)
-
----
-
-## File Types
-
-A **file type** refers to the method used to organize pages on disk.
-
-### Heap File
-
-A heap file has **no particular ordering of pages or records** within pages. Records are inserted wherever there is free space.
-
-**Linked List Implementation**
-
-In the linked list implementation, each data page contains:
-- **Records** (the actual data)
-- **Free space tracker** (how much space remains)
-- **Pointers** (byte offsets to the next and previous pages)
-
-A **header page** acts as the entry point and maintains two separate linked lists:
-1. **Free pages** — pages with available space for new records
-2. **Full pages** — pages that are completely filled
-
-When a free page becomes full, it is moved to the front of the full pages list.
-
-![Linked List Implementation](assets/LinkedList.png)
-
-**Page Directory Implementation**
-
-Instead of linking all data pages together, the page directory uses a **linked list of header pages only**. Each header page entry contains:
-- A **pointer** to a data page
-- The **amount of free space** remaining in the data page the pointer points to
-
-![Page Directory Implementation](assets/PageDirectory.png)
-
-### Sorted File
-
-A **sorted file** maintains pages in order, with records within each page sorted by one or more keys. Sorted files are typically implemented using page directories.
-
-### Heap Files vs Sorted Files
-
-| Operation | Heap File | Sorted File |
-|-----------|-----------|-------------|
-| **Insert** | Fast — place anywhere with space | Slow — must maintain sort order |
-| **Search (equality)** | Slow — requires full scan | Fast — can use binary search |
-| **Search (range)** | Slow — requires full scan | Fast — records are contiguous |
-
----
-
 ## Record Types
 
 Records are classified by whether their size is fixed or variable.
@@ -168,14 +111,6 @@ Example:
 Sequential scan is a simple loop that iterates through every block on disk to find matches for a query.
 
 ![LRUSequentialScan](assets/LRUSequentialScan.png)
-
-### MRU Replacement
-
-Instead of evicting the least recently used unpinned page, evict the most recently used unpinned page measured by when the page’s pin count was last decremented.
-
-![MRUSequentialScan](assets/MRUSequentialScan.png)
-
-MRU far outperforms LRU in terms of page hit rate whenever a sequential flooding access pattern occurs.
 
 ---
 

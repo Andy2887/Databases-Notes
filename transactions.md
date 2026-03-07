@@ -6,52 +6,9 @@
 
 A **transaction** is a sequence of one or more database operations that are executed as a single logical unit of work.
 
----
+### ACID Properties
 
-## Concurrency Issues
-
-When multiple transactions execute concurrently without proper control, several problems can arise:
-
-### Inconsistent Reads (Write-Read Conflict)
-
-A transaction reads only part of what another transaction has updated, seeing the database in an intermediate state.
-
-**Example:**
-- User 1 updates Table 1 and then updates Table 2
-- User 2 reads Table 2 (not yet updated by User 1) and then Table 1 (already updated by User 1)
-- User 2 sees an inconsistent state of the database
-
-### Lost Update (Write-Write Conflict)
-
-Two transactions try to update the same record at the same time, causing one update to be overwritten.
-
-**Example:**
-- User 1 updates a toy's price to be `price × 2`
-- User 2 updates the same toy's price to be `price + 5`, overwriting User 1's update
-- User 1's update is lost
-
-### Dirty Reads (Write-Read Conflict)
-
-A transaction reads data that was modified by another transaction but never committed (and may be rolled back).
-
-**Example:**
-- User 1 updates a toy's price but the transaction gets aborted
-- User 2 reads the updated price before User 1's transaction was rolled back
-- User 2 has read invalid data
-
-### Unrepeatable Reads (Read-Write Conflict)
-
-A transaction reads the same record twice and gets different values because another transaction modified the record in between.
-
-**Example:**
-- User 1 reads a toy's price
-- User 2 updates the toy's price to be `price × 2` and commits
-- User 1 reads the toy's price again and gets a different value
-- User 1 should see the same value within one transaction, so it must abort
-
-## ACID Properties
-
-Transactions guarantee the **ACID properties** to avoid the concurrency problems discussed above:
+Transactions guarantee the **ACID properties** to avoid concurrency problems:
 
 | Property | Description |
 |----------|-------------|
@@ -60,13 +17,15 @@ Transactions guarantee the **ACID properties** to avoid the concurrency problems
 | **Isolation** | Each transaction executes as if it's the only one running. The DBMS may interleave operations from multiple transactions, but each transaction should not see intermediate states of others. |
 | **Durability** | Once a transaction is committed, the changes are permanent. Even if the system crashes immediately after, the data persists when the system restarts. |
 
+---
+
 ## Concurrency Control
 
-**Concurrency control** mechanisms ensure that concurrent execution of transactions maintains database consistency and isolation.
+Concurrency control mechanisms ensure that concurrent execution of transactions maintains database consistency and isolation.
 
 ### Serial Schedule
 
-A **serial schedule** completes all operations of one transaction before beginning the operations of the next transaction.
+A serial schedule completes all operations of one transaction before beginning the operations of the next transaction.
 
 **Example:**
 
@@ -82,9 +41,11 @@ Two schedules are **equivalent** if they satisfy the following three conditions:
 
 ### Serializable Schedule
 
-A schedule is **serializable** if its results are equivalent to some serial schedule. This ensures correctness even when operations are interleaved.
+A schedule is **serializable** if its results are **equivalent to some serial schedule**. This ensures correctness even when operations are interleaved.
 
-**Example:**
+*Serializable scheduler could be rearranged as if it is executed in a serial way.*
+
+Example:
 
 The schedule in this example is equivalent to the serial schedule above.
 
@@ -174,7 +135,7 @@ Conflict serializability often flags schedules with blind writes as "non-seriali
 
 The problem with this is that it does not prevent **cascading aborts**. For example:
 
-1. T1 updates resource X and then releases the lock on X
+1. T1 updates resource X and then releases the lock on X (not yet committed)
 2. T2 reads from X
 3. T1 aborts
 4. T2 must also abort because it read an uncommitted value of X
@@ -183,14 +144,14 @@ To solve this, we use **Strict Two Phase Locking (Strict 2PL)**. Strict 2PL is t
 
 ### Deadlock
 
-#### Avoidance
+**Avoidance**
 
 One way we can get around deadlocks is by trying to avoid getting into a deadlock. We assign the transaction's priority by its age: `now - start time`. If T1 wants a lock that T2 holds, we have two options:
 
 - **Wait-Die**: If T1 has higher priority, T1 waits for T2; else T1 aborts
 - **Wound-Wait**: If T1 has higher priority, T2 aborts; else T1 waits
 
-#### Detection
+**Detection**
 
 Use a **"waits-for" graph**. This graph will have one node per transaction and an edge from Ti to Tj if all conditions are met:
 
@@ -203,7 +164,7 @@ If a cycle is found, we will "shoot" a transaction in the cycle and abort it to 
 
 ### Lock Granularity
 
-#### Hierarchy of Granularity
+**Hierarchy of Granularity**
 
 Locking can happen at various levels within the database. Generally, the levels are structured as follows:
 
@@ -212,7 +173,7 @@ Locking can happen at various levels within the database. Generally, the levels 
 3. **Page/Block Level**: A physical disk block (containing several rows) is locked
 4. **Row (Tuple) Level**: Only a specific row is locked. This is the most common level for high-performance databases
 
-#### Multiple Granularity Locking (MGL)
+**Multiple Granularity Locking (MGL)**
 
 To manage these different levels efficiently, databases use **intent locks**. These signal that a transaction intends to lock something further down the hierarchy:
 
@@ -222,7 +183,7 @@ To manage these different levels efficiently, databases use **intent locks**. Th
 
 This prevents a conflict where User A tries to lock an entire table while User B is currently editing a single row inside it. Without intent locks, the database would have to check every single row to see if it's safe to lock the table.
 
-#### Multiple Granularity Locking Protocol
+**Multiple Granularity Locking Protocol**
 
 The protocol follows these rules:
 
@@ -244,14 +205,14 @@ The protocol is correct in that it is equivalent to directly setting locks at le
 
 **Two Phase Commit (2PC)** ensures that in a transaction, either every node succeeds or no one does.
 
-#### Phase 1: Preparation Phase
+**Phase 1: Preparation Phase**
 
 1. **Coordinator** sends prepare message to participants to tell participants to either prepare for commit or abort
 2. **Participants** generate a prepare or abort record and flush record to disk
 3. **Participants** send yes vote to coordinator if prepare record is flushed or no vote if abort record is flushed
 4. **Coordinator** generates a commit record if it receives unanimous yes votes or an abort record otherwise, and flushes the record to disk
 
-#### Phase 2: Commit/Abort Phase
+**Phase 2: Commit/Abort Phase**
 
 1. **Coordinator** broadcasts (sends message to every participant) the result of the commit/abort vote based on flushed record
 2. **Participants** generate a commit or abort record based on the received vote message and flush record to disk
@@ -309,7 +270,7 @@ The **presumed abort optimization** improves 2PC performance by eliminating the 
 
 **Note:** The asterisk `*` in the diagram above means that the node must wait for that log record to flush to disk before sending the next message. Notice that in the presumed abort optimization, abort records no longer need to be flushed to disk.
 
-#### Recovery with Presumed Abort
+**Recovery with Presumed Abort**
 
 The following scenarios show how recovery differs with and without presumed abort:
 

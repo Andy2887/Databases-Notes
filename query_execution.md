@@ -31,8 +31,6 @@ Pros: it's simple.
 
 Cons: **a lot of function call overhead.**
 
----
-
 **Approach #2: Materialization Model**
 
 Each operator processes its *entire* input and produces its *entire* output before passing it to the parent. **You call `Output()` and get back all the tuples at once.**
@@ -49,11 +47,42 @@ Pros: fewer function calls overhead
 
 Cons: **enormous intermediate results in memory**
 
----
-
 **Approach #3: Vectorization Model**
 
 It works like the iterator model — operators have a `next()` function — but instead of returning one tuple, they return a **batch** of tuples (say, 1024 at a time).
+
+---
+
+## Plan Processing Direction
+
+**Approach #1: Top-to-Bottom (Pull)**
+
+Start with the root and "pull" data up from its children.
+
+*Pros:* Easy to implement "Limit", because parent just keep asking children for tuple if needed.
+
+*Cons:* Control flow of pull-based engine is more complicated, which degrades branch prediction.
+
+**Approach #2: Bottom-to-Top (Push)**
+
+Start with leaf nodes and "push" data to their parents.
+
+*Pros:* Control flow is less complicated. 
+
+*Cons:* Source node might produce elements we don't want. (But there's solution for this. We could fuse the parent operator with the child operator.)
+
+---
+
+## Join Algorithms
+
+### Hash Join
+
+- **Phase #1 – Build:** First, scan the outer relation and generate a hash table.
+- **Phase #2 – Probe:** Scan the inner relation and use the hash function on each tuple’s join attributes to jump to the corresponding location in the hash table and find a matching tuple.
+
+### Sort-Merge Join
+
+At a high level, a sort-merge join sorts the two tables on their join key(s). It then steps through each table with cursors and emits matches (like in Mergesort).
 
 ---
 

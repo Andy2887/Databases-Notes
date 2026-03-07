@@ -248,18 +248,15 @@ Algorithm: SQ8H
 let n be the number of queries
 
 if n > threshold
-		# GPU does all the work
+		// GPU does all the work
 		load data in CPU memory to GPU memory
 		run all the queries entirely in GPU
 else
-		# CPU and GPU cooperate
+		// CPU and GPU cooperate
+		// Step 1 is compute-intensive, so GPUs do the work
 		execute the step1 of SQ8 in GPU: finding buckets
-		execute the step2 of SQ8 in GPU: scanning relevant bucket
+		// Step 2 is I/O bound, so CPUs do the work
+		execute the step2 of SQ8 in CPU: scanning relevant bucket
 ```
 
 Since data transfer between CPU and GPU memory is expensive, using GPU only outperforms when the query batch size is large enough. In this cases, the GPU's computational advantage is enough to amortize the overhead of data movement.
-
-
-
-
-
