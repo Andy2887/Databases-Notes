@@ -8,7 +8,7 @@ A **query planner** is the component of a DBMS that determines the most efficien
 
 Example Query:
 
-<img src="/Users/yuanliheng/Desktop/Database Notes/assets/example_query.jpg" style="zoom:50%;" />
+<img src="assets/example_query.jpg" style="zoom:50%;" />
 
 ### Processing Models
 
