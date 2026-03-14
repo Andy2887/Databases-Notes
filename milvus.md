@@ -4,7 +4,7 @@
 
 ---
 
-## Vector Database
+## Vector Database Introduction
 
 A **Vector Database** stores and indexes vector embeddings.
 
@@ -24,21 +24,7 @@ Why do we need Vector DB when we have FAISS?
 2. **Querying**: The vector database compares the **indexed query vector** to the **indexed vectors in the dataset** to **find the nearest neighbors**
 3. **Post Processing**: In some cases, the vector database retrieves the final nearest neighbors from the dataset and applies a more careful analysis to re-rank them before returning the final result to you.
 
-### Serverless Vector Databases
-
-**Separation of storage from compute:**
-
-The key idea behind separation of storage from compute is to **minimize expensive compute cost**.
-
-Partitioning algorithms can break an index into sub-indices, allowing us to focus the search on specific partitions.
-
-When a vector embedding comes in, the vector embedding is assigned to 1 of the partitions. 
-
-When a query comes in, the system only searches the partition where the result is most likely at. **This minimizes the cost of searching.**
-
-<img src="assets/vector_space_partitioning.jpg" style="zoom:50%;" />
-
-**Freshness:**
+### Freshness Layer of Vector Database
 
 *Problem:* Building the index is slow. We could run into freshness problem - we must wait for new data to be correctly stored in the index before we query them.
 
@@ -79,11 +65,6 @@ Worker nodes are dumb executors that follow instructions from the coordinator.
 **Streaming Node**
 
 Streaming Node serves as the shard-level **"mini-brain"**, providing shard-level consistency guarantees and fault recovery. Meanwhile, Streaming Node is also responsible for **growing data querying** and generating query plans. Additionally, it also handles the conversion of growing data into sealed (historical) data.
-
-Note: 
-
-1. shard is a horizontal partition of a database.
-2. growing data is saved on streaming node.
 
 **Query Node**
 
@@ -167,7 +148,31 @@ Each segment contains massive amount of entities. An entity in Milvus is equival
 
 ---
 
-## Data Persistence
+## Indexes
+
+Milvus mainly support two types of indexes: **quantization-based indexes** (including IVF_FLAT, IVF_SQ8, and IVF_PQ) and **graph-based indexes** (including HNSW and RNSG) to serve different applications. 
+
+Considering there are many new indexes coming out every year, Milvus is designed to easily incorporate new indexes with a high-level abstraction. Developers only need to implement a few pre-defined interfaces for adding a new index. 
+
+---
+
+## Compression
+
+Milvus supports index-level compression and compaction of small segments into larger ones. However, compressing raw vector data is not supported.
+
+---
+
+## Concurrency Control
+
+Milvus supports Multi-Version Concurrency Control. 
+
+Milvus provides a Timestamp Oracle (TSO) service to ensure global ordering, meaning all events must be allocated a timestamp from TSO rather than from the local clock.
+
+---
+
+## Checkpoint
+
+Incoming data is first stored in **growing segments** in streaming nodes. After the growing segment reaches a threshold, it is sealed and becomes **sealed segment**. Milvus will do a checkpoint by flushing these sealed segment to Object Storage.
 
 ---
 
@@ -175,88 +180,29 @@ Each segment contains massive amount of entities. An entity in Milvus is equival
 
 The core vector execution engine is called **Knowhere**. 
 
-Knowhere is designed to support heterogeneous computing. It controls on which hardware (CPU or GPU) to execute index building and search requests. This is how Knowhere gets its name - knowing where to execute the operations.
+Knowhere is an operation interface between services in the upper layers of the system and vector similarity search libraries like [Faiss](https://github.com/facebookresearch/faiss), [Hnswlib](https://github.com/nmslib/hnswlib), [Annoy](https://github.com/spotify/annoy) in the lower layers of the system. In addition, Knowhere is also in charge of heterogeneous computing. More specifically, Knowhere controls on which hardware (eg. CPU or GPU) to execute index building and search requests. This is how Knowhere gets its name - knowing where to execute the operations.
+
+Knowhere only processes data computing tasks, while tasks like sharding, load balance, disaster recovery are beyond the work scope of Knowhere.
+
+Knowhere has the following advantages compared to FAISS:
+
+1. **Support for BitsetView:** bitset was introduced to enable "soft deletion". More specifically, a soft-deleted vector will still exist in the database, but it would not be computed during a vector query. 
+2. **Support for AVX512 instruction set:** Knowhere supports [AVX512](https://en.wikipedia.org/wiki/AVX-512), which can [improve the performance of index building and query by 20% to 30%](https://milvus.io/blog/milvus-performance-AVX-512-vs-AVX2.md) compared to AVX2.
+3. **Automatic SIMD-instruction selection:** At run time, Knowhere could choose the best suited SIMD-instructions based on the current CPU.
 
 ![](assets/knowhere_architecture.png)
 
-### Query Types
+---
 
-**Vector Query:** Given a vector, return the k most similar vectors where k is a user-input parameter.
+## References
 
-**Attribute Filtering:** Given a vector and some attributes, return the k most similar vectors.
+[What is a Vector Database & How Does it Work? Use Cases + Examples](https://www.pinecone.io/learn/vector-database/)
 
-Example: user might want to find similar clothes under $100
+[Building a Vector Database for Scalable Similarity Search](https://milvus.io/blog/deep-dive-1-milvus-architecture-overview.md)
 
-**Multi-vector Query:** Given multiple vectors, return the k most similar vectors where k is a user-input parameter.
+[How to Compact Data in Milvus?](https://milvus.io/blog/2022-2-21-compact.md)
 
-### Similarity Functions
+[What Powers Similarity Search in Milvus Vector Database?](https://milvus.io/blog/deep-dive-8-knowhere.md)
 
-Users could choose to use one of the commonly used similarity metrics, including Euclidean distance, inner product, cosine similarity and so on.
+[Milvus: A Purpose-Built Vector Data Management System](https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD21_Milvus.pdf)
 
-### Heterogeneous Computing
-
-**CPU-oriented Optimizations**
-
-The fundamental problem of query processing is that, given a collection of m queries {q1, q2, ....., qm} and a collection of n data vectors {v1, v2, ....., vn}, how to quickly find for each query qi its top-k similar vectors.
-
-Steps:
-
-1. Each thread is assigned some data vectors. Assume there are *t* threads.
-
-   The queries are partitioned into blocks of size *s* (assume the total number of queries is divisible by *s*). 
-
-   Each query in the block is assigned *t* heaps. The query with local index *i* is assigned heaps *H0,i*, *H1,i* ......, *Ht-1,i*
-
-   <img src="assets/assignment.jpg" style="zoom:50%;" />
-
-2. A query block and its associated heaps is loaded into L3 cache.
-
-3. When a thread loads its data vector block into L3 cache, it is compared against the entire query block.
-
-   For a query with local index *j*, a matching vector in thread *i* will be saved to *Hi,j*
-
-   See the below example of how query 0 saves its data:
-
-   <img src="assets/q0.jpg" style="zoom:50%;" />
-
-4. Repeat 2 and 3 for the next query block.
-
-5. Now the results of a query *qi* are spread over *i* heaps. We need to merge these heaps to get the final top-k results.
-
-*Advantage of this approach:*
-
-- **It minimizes CPU cache misses** because each part of the data is resued for multiple queries.  
-- It assignes threads to data vectors instead of query to **best leverage multi-core parallelism**, because the data size *n* is usually much bigger than the query size *m* in practice.
-
-**GPU-oriented Optimizations**
-
-1. **Supporting bigger k in GPU kernel.**
-
-   When k is greater than 1024 (which means data could not fit into shared memory), Milvus execute the query in multiple rounds to cumulatively produce the final results.
-
-2. **Supporting multi-GPU devices.**
-
-   Milvus allow users to select any number of GPU devices during runtime. For example, if a new GPU is installed, Milvus can immediatley assign the next available search task to it.
-
-**GPU and CPU Co-design**
-
-Milvus has developed a index called SQ8H, which is designed to leverage both GPU and CPU for optimized performance.
-
-```
-Algorithm: SQ8H
-
-let n be the number of queries
-
-if n > threshold
-		// GPU does all the work
-		load data in CPU memory to GPU memory
-		run all the queries entirely in GPU
-else
-		// CPU and GPU cooperate
-		// Step 1 is compute-intensive, so GPUs do the work
-		execute the step1 of SQ8 in GPU: finding buckets
-		// Step 2 is I/O bound, so CPUs do the work
-		execute the step2 of SQ8 in CPU: scanning relevant bucket
-```
-
-Since data transfer between CPU and GPU memory is expensive, using GPU only outperforms when the query batch size is large enough. In this cases, the GPU's computational advantage is enough to amortize the overhead of data movement.
