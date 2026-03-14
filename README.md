@@ -2,7 +2,7 @@
 
 ## Overview
 
-A collection of notes covering core database concepts, including storage systems, query execution, transaction management, and NoSQL databases. These notes are useful for understanding how modern database systems work under the hood.
+A collection of notes covering core database concepts and modern database systems analysis.
 
 ## Content
 
@@ -18,7 +18,7 @@ A collection of notes covering core database concepts, including storage systems
   - Paper: [Milvus - A Purpose-Built Vector Data Management System](<papers/Milvus - A Purpose-Built Vector Data Management System.pdf>)
 
 - [Snowflake](snowflake.md) - The pioneering cloud-native OLAP database in the commercial sphere.
-    - Paper: [The Snowflake Elastic Data Warehouse](<papers/The Snowflake Elastic Data Warehouse.pdf>)
+  - Paper: [The Snowflake Elastic Data Warehouse](<papers/The Snowflake Elastic Data Warehouse.pdf>)
 
 ### TODO
 
@@ -27,4 +27,6 @@ A collection of notes covering core database concepts, including storage systems
 
 ## Acknowledgement
 
-I learned a lot from [CMU Intro to Databases](https://15445.courses.cs.cmu.edu/fall2024/) and [CMU Advanced Database Systems](https://15721.courses.cs.cmu.edu/spring2023/). Special thanks to Professor Pavlo and CMU Database Group for making their learning materials open source.
+These notes are made to help me keep track of what I learned from Intro to Databases and Advanced Database Systems at Northwestern.
+
+I also learned a lot from [CMU Intro to Databases](https://15445.courses.cs.cmu.edu/fall2024/) and [CMU Advanced Database Systems](https://15721.courses.cs.cmu.edu/spring2023/). Special thanks to Professor Pavlo and CMU Database Group for making their learning materials open source.
