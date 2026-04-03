@@ -1,8 +1,10 @@
-# Transactions
+# Concurrency Control
+
+Concurrency control ensure that concurrent operations produce the correct results. 
 
 ---
 
-## Overview
+## Transaction
 
 A **transaction** is a sequence of one or more database operations that are executed as a single logical unit of work.
 
@@ -16,12 +18,6 @@ Transactions guarantee the **ACID properties** to avoid concurrency problems:
 | **Consistency** | A transaction takes the database from one valid state to another, maintaining all constraints and rules (e.g., "the banking account balance column cannot be negative"). |
 | **Isolation** | Each transaction executes as if it's the only one running. The DBMS may interleave operations from multiple transactions, but each transaction should not see intermediate states of others. |
 | **Durability** | Once a transaction is committed, the changes are permanent. Even if the system crashes immediately after, the data persists when the system restarts. |
-
----
-
-## Concurrency Control
-
-Concurrency control mechanisms ensure that concurrent execution of transactions maintains database consistency and isolation.
 
 ### Serial Schedule
 
@@ -56,8 +52,8 @@ The schedule in this example is equivalent to the serial schedule above.
 Two operations **conflict** if they satisfy all three conditions:
 
 1. The operations are from different transactions
-2. Both operations operate on the same resource (e.g., same database record)
-3. At least one operation is a write
+2. Both operations operate on **the same resource** (e.g., same database record)
+3. **At least one operation is a write**
 
 ### Conflict Equivalence
 

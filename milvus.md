@@ -205,4 +205,3 @@ Knowhere has the following advantages compared to FAISS:
 [What Powers Similarity Search in Milvus Vector Database?](https://milvus.io/blog/deep-dive-8-knowhere.md)
 
 [Milvus: A Purpose-Built Vector Data Management System](https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD21_Milvus.pdf)
-

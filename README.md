@@ -10,6 +10,7 @@ A collection of notes covering core database concepts and modern database system
 
 - [Storage](storage.md) - Record types, buffer management with LRU/Clock/MRU policies, and storage models (NSM, DSM, PAX, HTAP).
 - [Query Execution](query_execution.md) - Query processing models and parallel query processing. 
+- [Query Optimizer](query_optimizer.md) - 
 - [Transactions](transactions.md) - Concurrency control, two-phase locking, deadlock handling, lock granularity, and distributed transactions with two-phase commit (2PC).
 
 ### Databases Analysis
@@ -23,7 +24,10 @@ A collection of notes covering core database concepts and modern database system
 ### TODO
 
 1. Add query optimizer.
+1. Add Timestamp Ordering Concurrency Control and Multi-Version Concurrency Control
+1. Add Database logging and Recovery.
 1. Add databricks to database analysis.
+1. Add distributed database, and concentrate all distributed related knowledge to this module. 
 
 ## Acknowledgement
 

@@ -39,7 +39,7 @@ To improve cache hit rate, the query optimizer assigns input file sets to worker
 
 When there's a EC2 instance failure, the data stays in the cache, and Snowflake uses a LRU replacement policy to eventually replace the contents. This ensures better availability and simplifies the system.
 
-To solve skew handling, worker nodes could help other worker nodes process files. This is called file stealing.
+To solve skew handling, worker nodes could help other worker nodes process files (file stealing).
 
 <img src="assets/virtual_warehouse.jpg" style="zoom:50%;" />
 
@@ -49,9 +49,23 @@ This layer contains a collection of services that manage virtual warehouses, que
 
 ---
 
-## Feature Highlights
+## Query Execution
 
-### Continuous Availability
+Snowflake uses a **columnar, vectorized and push-based** engine.
+
+There is no transaction management, since queries are executed against a fixed set of immutable files (see "Time Travel and Cloning" section) in the engine's view.
+
+Also, there is no buffer pool, since using memory for buffer pool versus operation is a bad tradeoff.
+
+---
+
+## Storage Model
+
+Snowflake uses PAX storage scheme.
+
+---
+
+## Continuous Availability
 
 **Fault resilience:** 
 
@@ -71,10 +85,18 @@ Steps for software update:
 2. User accounts are moved to new version. New queries will be issued by new version, and the existing queries are allowed to run to completion. 
 3. Once all queries and users have finished using the previous version, all services of that version is terminated.
 
-### Time Travel and Cloning
+---
+
+## Time Travel and Cloning
 
 Users are allowed to use earlier versions of the tables.
 
 **MVCC:** copy of every changed database object is preserved for some duration. This is a natural choice given the fact that table files are immutable in S3. In S3, changes to a file can only be made by replacing it with a new file. File additions and removals are tracked in the metadata in the global key-value store. Therefore, creating files related to a new version is very efficient.
 
 Users could also clone a new table. Internally, Snowflake copies the metadata of the source table. Right after cloning, both tables refer to the same set of files, but both tables can be modified independently afterwards.
+
+---
+
+## References
+
+[The Snowflake Elastic Data Warehouse](https://info.snowflake.net/rs/252-RFO-227/images/Snowflake_SIGMOD.pdf)
