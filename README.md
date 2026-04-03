@@ -10,16 +10,16 @@ A collection of notes covering core database concepts and modern database system
 
 - [Storage](storage.md) - Record types, buffer management with LRU/Clock/MRU policies, and storage models (NSM, DSM, PAX, HTAP).
 - [Query Execution](query_execution.md) - Query processing models and parallel query processing. 
-- [Query Optimizer](query_optimizer.md) - 
+- [Query Optimizer](query_optimizer.md) - (Working on it)
 - [Transactions](transactions.md) - Concurrency control, two-phase locking, deadlock handling, lock granularity, and distributed transactions with two-phase commit (2PC).
 
 ### Databases Analysis
 
 - [Milvus](milvus.md) - An open-source vector database built for GenAI applications.
-  - Paper: [Milvus - A Purpose-Built Vector Data Management System](<papers/Milvus - A Purpose-Built Vector Data Management System.pdf>)
+  - Paper: [Milvus - A Purpose-Built Vector Data Management System](https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD21_Milvus.pdf)
 
 - [Snowflake](snowflake.md) - The pioneering cloud-native OLAP database in the commercial sphere.
-  - Paper: [The Snowflake Elastic Data Warehouse](<papers/The Snowflake Elastic Data Warehouse.pdf>)
+  - Paper: [The Snowflake Elastic Data Warehouse](https://www.cs.cmu.edu/~15721-f24/papers/Snowflake.pdf)
 
 ### TODO
 
