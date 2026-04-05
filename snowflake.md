@@ -1,6 +1,6 @@
 # Snowflake
 
-Snowflake represents the pioneering cloud-native OLAP database in the commercial sphere.
+Snowflake represents the pioneering cloud-native data warehouse in the commercial sphere.
 
 ---
 
